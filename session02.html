@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Session 02: Từ Monolithic đến Microservice — Rikkei Academy</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{brand:{primary:"#be111c",dark:"#90000a",black:"#1a1a1a",text:"#333333",gray:"#f5f5f5"}},fontFamily:{sans:["Inter","system-ui","sans-serif"],montserrat:["Montserrat","sans-serif"]}}}}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
+*{box-sizing:border-box}
+body{background:#fff;color:#333;overflow:hidden;font-family:Inter,sans-serif;margin:0}
+.slide-container{width:100vw;height:100vh;display:flex;flex-direction:column;outline:none}
+.slides-wrapper{flex:1;position:relative;overflow:hidden;background:#fff}
+.slide-page{position:absolute;inset:0;display:none;flex-direction:column;background:#fff;z-index:1}
+.slide-page.active{display:flex;z-index:10}
+.slide-shell{width:100%;height:100%;max-width:1280px;margin:0 auto;padding:28px 48px 40px;display:flex;flex-direction:column;min-height:0}
+.slide-head{flex-shrink:0;padding-bottom:14px;margin-bottom:18px;border-bottom:1px solid #e5e7eb}
+.slide-body{flex:1;min-height:0;display:flex;align-items:center}
+.slide-body.col{flex-direction:column;align-items:stretch;justify-content:center}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:36px;width:100%;height:100%;align-items:center;min-height:0}
+.split-wide-img{grid-template-columns:1.05fr .95fr}
+.split-wide-text{grid-template-columns:.95fr 1.05fr}
+.col{display:flex;flex-direction:column;justify-content:center;min-height:0;min-width:0}
+.illust{width:100%;height:100%;max-height:420px;aspect-ratio:16/10;border-radius:16px;border:1px solid #eee;background:linear-gradient(180deg,#fafafa 0%,#fff 100%);box-shadow:0 8px 28px rgba(26,26,26,.06);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.illust img{width:100%;height:100%;object-fit:contain;object-position:center;display:block;padding:8px}
+.illust-label{position:absolute;left:12px;bottom:12px;z-index:2;background:rgba(255,255,255,.94);border:1px solid rgba(190,17,28,.18);color:#be111c;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:5px 10px;border-radius:999px;pointer-events:none}
+.slide-page .animate-item{opacity:0;transform:translateY(20px)}
+.slide-page.active .animate-item{animation:fadeInUp .65s cubic-bezier(.16,1,.3,1) forwards}
+.slide-page .animate-scale{opacity:0;transform:scale(.92)}
+.slide-page.active .animate-scale{animation:scaleIn .5s cubic-bezier(.175,.885,.32,1.275) forwards}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.delay-100{animation-delay:.1s!important}.delay-150{animation-delay:.15s!important}
+.delay-200{animation-delay:.2s!important}.delay-250{animation-delay:.25s!important}
+.delay-300{animation-delay:.3s!important}.delay-350{animation-delay:.35s!important}
+.delay-400{animation-delay:.4s!important}.delay-450{animation-delay:.45s!important}
+.delay-500{animation-delay:.5s!important}.delay-550{animation-delay:.55s!important}
+.delay-600{animation-delay:.6s!important}
+.nav-btn{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(255,255,255,.9);backdrop-filter:blur(4px);color:#333;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,.1);opacity:.25}
+.nav-btn:hover{background:#be111c;color:#fff;transform:translateY(-50%) scale(1.08);opacity:1}
+.nav-prev{left:16px}.nav-next{right:16px}
+.bg-pattern-red{background-color:#be111c;background-image:linear-gradient(135deg,rgba(144,0,10,.4) 25%,transparent 25%),linear-gradient(225deg,rgba(144,0,10,.4) 25%,transparent 25%),linear-gradient(45deg,rgba(144,0,10,.4) 25%,transparent 25%),linear-gradient(315deg,rgba(144,0,10,.4) 25%,#be111c 25%);background-position:100px 0,100px 0,0 0,0 0;background-size:200px 200px}
+.title-modern{position:relative;display:inline-block;z-index:1;padding:0 6px}
+.title-modern::before{content:"";position:absolute;left:0;bottom:3px;width:100%;height:10px;background:rgba(190,17,28,.14);z-index:-1;transform:skew(-12deg)}
+.slide-counter{position:fixed;bottom:14px;right:22px;font-size:12px;color:#64748b;z-index:100;font-weight:600}
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:#be111c;z-index:200;transition:width .35s ease}
+.compare-row:nth-child(even){background:#fafafa}
+.card{background:#fff;border:1px solid #f0f0f0;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.card-soft{background:#fff;border:1px solid #f3f3f3;border-radius:12px}
+
+/* ——— Concept interactive ——— */
+.concept{
+  display:inline;position:relative;cursor:pointer;
+  color:#be111c;font-weight:700;background:linear-gradient(180deg,transparent 62%,rgba(190,17,28,.12) 62%);
+  border:none;padding:0 1px;margin:0;font:inherit;line-height:inherit;vertical-align:baseline;
+  transition:color .2s,background .2s;
+}
+.concept::after{
+  content:"ⓘ";font-size:.65em;font-weight:700;margin-left:2px;opacity:.55;
+  vertical-align:super;line-height:0;
+}
+.concept:hover,.concept:focus-visible{
+  color:#90000a;background:linear-gradient(180deg,transparent 55%,rgba(190,17,28,.22) 55%);
+  outline:none;
+}
+.concept:hover::after,.concept:focus-visible::after{opacity:1}
+.concept.is-active{
+  color:#fff;background:#be111c;border-radius:4px;padding:1px 6px;
+  box-shadow:0 0 0 3px rgba(190,17,28,.18);
+}
+.concept.is-active::after{color:rgba(255,255,255,.85);opacity:1}
+
+/* Hover tip (desktop) */
+.concept-tip{
+  position:fixed;z-index:300;max-width:280px;pointer-events:none;
+  background:#1a1a1a;color:#fff;font-size:12px;line-height:1.45;font-weight:500;
+  padding:10px 12px;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.22);
+  opacity:0;transform:translateY(6px);transition:opacity .18s ease,transform .18s ease;
+  visibility:hidden;
+}
+.concept-tip.show{opacity:1;transform:translateY(0);visibility:visible}
+.concept-tip .tip-title{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fca5a5;margin-bottom:4px}
+.concept-tip::after{
+  content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:#1a1a1a;border-bottom:0;
+}
+
+/* Click panel */
+.concept-overlay{
+  position:fixed;inset:0;z-index:400;background:rgba(26,26,26,.42);backdrop-filter:blur(3px);
+  opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s;
+}
+.concept-overlay.open{opacity:1;visibility:visible}
+.concept-panel{
+  position:fixed;z-index:410;top:50%;left:50%;
+  width:min(520px,92vw);max-height:min(78vh,560px);
+  transform:translate(-50%,-46%) scale(.96);
+  background:#fff;border-radius:18px;border:1px solid #f0f0f0;
+  box-shadow:0 24px 64px rgba(0,0,0,.18);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .25s ease,transform .28s cubic-bezier(.16,1,.3,1),visibility .25s;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.concept-panel.open{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transform:translate(-50%,-50%) scale(1);
+}
+.concept-panel-head{
+  flex-shrink:0;padding:18px 20px 14px;border-bottom:1px solid #f0f0f0;
+  display:flex;align-items:flex-start;gap:12px;background:linear-gradient(180deg,#fff 0%,#fafafa 100%);
+}
+.concept-panel-icon{
+  width:42px;height:42px;border-radius:12px;background:#fef2f2;color:#be111c;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;
+}
+.concept-panel-head h3{font-family:Montserrat,sans-serif;font-weight:800;font-size:18px;color:#1a1a1a;margin:0 0 2px;line-height:1.25}
+.concept-panel-head .tag{
+  display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:#be111c;background:#fef2f2;padding:2px 8px;border-radius:999px;
+}
+.concept-close{
+  margin-left:auto;width:32px;height:32px;border-radius:50%;border:1px solid #eee;background:#fff;
+  color:#666;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .2s;
+}
+.concept-close:hover{background:#be111c;color:#fff;border-color:#be111c}
+.concept-panel-body{flex:1;overflow-y:auto;padding:16px 20px 20px;min-height:0}
+.concept-panel-body .lead{font-size:14px;color:#333;line-height:1.55;margin:0 0 14px;font-weight:500}
+.concept-panel-body h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#be111c;margin:14px 0 8px}
+.concept-panel-body ul{margin:0;padding:0;list-style:none}
+.concept-panel-body li{
+  position:relative;padding:8px 10px 8px 28px;margin-bottom:6px;
+  background:#fafafa;border-radius:10px;font-size:13px;color:#444;line-height:1.45;
+}
+.concept-panel-body li::before{
+  content:"";position:absolute;left:12px;top:14px;width:6px;height:6px;border-radius:50%;background:#be111c;
+}
+.concept-panel-foot{
+  flex-shrink:0;padding:12px 20px;border-top:1px solid #f0f0f0;background:#fafafa;
+  font-size:11px;color:#888;display:flex;align-items:center;gap:8px;
+}
+.concept-panel-foot kbd{
+  display:inline-block;padding:1px 6px;border-radius:4px;border:1px solid #ddd;background:#fff;
+  font-size:10px;font-family:inherit;color:#555;
+}
+.hint-bar{
+  position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:90;
+  font-size:11px;color:#94a3b8;background:rgba(255,255,255,.92);border:1px solid #eee;
+  padding:6px 12px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.05);
+  pointer-events:none;white-space:nowrap;
+}
+.hint-bar strong{color:#be111c}
+</style>
+</head>
+<body>
+<div class="slide-container" tabindex="0" id="deck">
+<div class="progress-bar" id="progressBar" style="width:0%"></div>
+
+<header class="w-full h-[64px] bg-white flex items-center justify-between px-8 border-b border-gray-200 shrink-0 z-50">
+  <div class="flex items-center gap-3 cursor-pointer" onclick="goToSlide(0)">
+    <img src="https://rikkei.edu.vn/wp-content/uploads/2025/09/Logo.png" class="h-9" alt="Rikkei Education Logo"/>
+    <div class="h-5 w-px bg-gray-300"></div>
+    <span class="font-montserrat font-bold text-sm text-brand-black">AI Academy</span>
+  </div>
+  <nav class="flex gap-1 text-xs font-semibold text-gray-400 h-full" id="navTabs">
+    <button class="nav-tab px-3 hover:text-brand-primary transition-colors h-full flex items-center relative" onclick="goToSlide(0)">Mở đầu<div class="absolute bottom-0 left-0 w-full h-[3px] bg-brand-primary opacity-0 transition-opacity tab-indicator"></div></button>
+    <button class="nav-tab px-3 hover:text-brand-primary transition-colors h-full flex items-center relative" onclick="goToSlide(3)">Lesson 01–02<div class="absolute bottom-0 left-0 w-full h-[3px] bg-brand-primary opacity-0 transition-opacity tab-indicator"></div></button>
+    <button class="nav-tab px-3 hover:text-brand-primary transition-colors h-full flex items-center relative" onclick="goToSlide(8)">Lesson 03–04<div class="absolute bottom-0 left-0 w-full h-[3px] bg-brand-primary opacity-0 transition-opacity tab-indicator"></div></button>
+    <button class="nav-tab px-3 hover:text-brand-primary transition-colors h-full flex items-center relative" onclick="goToSlide(13)">Tổng kết<div class="absolute bottom-0 left-0 w-full h-[3px] bg-brand-primary opacity-0 transition-opacity tab-indicator"></div></button>
+  </nav>
+  <div class="w-[120px] text-right text-[11px] text-gray-400 font-semibold">Session 02</div>
+</header>
+
+<div class="slides-wrapper" id="slideContainer">
+
+<!-- 0 COVER -->
+<div class="slide-page active" id="slide-0" data-nav="0">
+  <div class="flex w-full h-full">
+    <div class="w-5/12 bg-white flex flex-col justify-center px-14 xl:px-16">
+      <div class="animate-item delay-100">
+        <h1 class="font-montserrat font-black text-[48px] xl:text-[56px] text-brand-primary leading-[1.08] mb-5">RIKKEI<br/>EDUCATION</h1>
+      </div>
+      <p class="text-gray-600 text-[15px] leading-relaxed font-medium animate-item delay-200 border-l-4 border-brand-primary pl-4 max-w-md">
+        Rikkei Education — Tổ chức Giáo dục &amp; Phát triển nguồn nhân lực Công nghệ thông tin nền tảng quốc tế, nhằm chuẩn bị cho giai đoạn mới và đáp ứng nhu cầu nhân lực trong ngành.
+      </p>
+    </div>
+    <div class="w-7/12 bg-pattern-red flex flex-col justify-center px-14 xl:px-20 relative overflow-hidden">
+      <div class="absolute -right-16 -bottom-16 w-64 h-64 rounded-full border-4 border-white/10"></div>
+      <div class="absolute right-16 top-12 w-20 h-20 rounded-full border-2 border-white/15"></div>
+      <div class="z-10 text-white relative">
+        <p class="text-xl xl:text-2xl font-light mb-2 animate-item delay-300">Chuyển dịch kiến trúc</p>
+        <h2 class="text-[34px] xl:text-[40px] font-montserrat font-bold leading-tight mb-5 animate-item delay-400">
+          Từ Monolithic<br/>đến Microservice<br/>
+          <span class="font-black text-yellow-300">Session 02</span>
+        </h2>
+        <div class="w-14 h-1 bg-white mb-5 animate-item delay-500"></div>
+        <h3 class="text-[20px] xl:text-[24px] font-light leading-snug animate-item delay-600">
+          Phòng CNTT - Trung tâm đào tạo<br/>
+          <span class="font-bold">Công nghệ &amp; Kinh tế số</span>
+        </h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1 AGENDA -->
+<div class="slide-page" id="slide-1" data-nav="0">
+  <div class="flex w-full h-full">
+    <div class="w-[64px] bg-brand-primary shrink-0 flex items-center justify-center">
+      <div class="text-white font-montserrat font-black text-lg tracking-[0.3em] uppercase" style="writing-mode:vertical-rl;transform:rotate(180deg)">NỘI DUNG</div>
+    </div>
+    <div class="slide-shell flex-1 !pl-10" style="padding-left:40px">
+      <div class="slide-head animate-item delay-100">
+        <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1">Agenda — Nội dung buổi học</h2>
+        <p class="text-xs font-semibold text-brand-primary uppercase tracking-wider">Session 02 · 4 lessons</p>
+      </div>
+      <div class="slide-body">
+        <div class="split split-wide-text w-full h-auto">
+          <div class="col space-y-4">
+            <div class="flex items-start gap-3 animate-item delay-200">
+              <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center font-montserrat font-black text-sm shrink-0">01</div>
+              <div>
+                <h4 class="font-bold text-brand-black text-[15px]">Kiến trúc <button type="button" class="concept" data-concept="mla">Monolithic (MLA)</button></h4>
+                <p class="text-xs text-gray-500 mt-0.5">Định nghĩa · Ưu/nhược · Giới hạn khi scale</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 animate-item delay-250">
+              <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center font-montserrat font-black text-sm shrink-0">02</div>
+              <div>
+                <h4 class="font-bold text-brand-black text-[15px]">Kiến trúc <button type="button" class="concept" data-concept="soa">SOA</button></h4>
+                <p class="text-xs text-gray-500 mt-0.5"><button type="button" class="concept" data-concept="esb">ESB</button> · Tích hợp hệ thống · Điểm nghẽn</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 animate-item delay-300">
+              <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center font-montserrat font-black text-sm shrink-0">03</div>
+              <div>
+                <h4 class="font-bold text-brand-black text-[15px]"><button type="button" class="concept" data-concept="msa">Microservices (MSA)</button></h4>
+                <p class="text-xs text-gray-500 mt-0.5"><button type="button" class="concept" data-concept="dumb_pipes">Smart endpoints · Dumb pipes</button> · Thách thức</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 animate-item delay-350">
+              <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center font-montserrat font-black text-sm shrink-0">04</div>
+              <div>
+                <h4 class="font-bold text-brand-black text-[15px]">Thiết kế Database cho MSA</h4>
+                <p class="text-xs text-gray-500 mt-0.5"><button type="button" class="concept" data-concept="db_per_service">DB-per-service</button> · <button type="button" class="concept" data-concept="shared_db">Shared DB</button> · <button type="button" class="concept" data-concept="api_composition">API Composition</button></p>
+              </div>
+            </div>
+          </div>
+          <div class="col animate-scale delay-300">
+            <div class="illust">
+              <img src="images/s02-msa.jpg" alt="Microservices overview"/>
+              <span class="illust-label">MLA → SOA → MSA</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2 LEARNING OUTCOMES -->
+<div class="slide-page" id="slide-2" data-nav="0">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Mục tiêu học tập</h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Sau Session 02, bạn có thể…</span>
+    </div>
+    <div class="slide-body col">
+      <div class="grid grid-cols-2 gap-4 w-full">
+        <div class="card p-5 animate-scale delay-200">
+          <div class="w-11 h-11 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-cube text-2xl"></i></div>
+          <h4 class="font-montserrat font-bold text-sm text-brand-black mb-1.5">Phân tích <button type="button" class="concept" data-concept="mla">Monolithic</button></h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Định nghĩa MLA, chỉ ra ưu điểm cho <button type="button" class="concept" data-concept="mvp">MVP</button> và nhược điểm khi đội ngũ/hệ thống lớn.</p>
+        </div>
+        <div class="card p-5 animate-scale delay-250">
+          <div class="w-11 h-11 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-path text-2xl"></i></div>
+          <h4 class="font-montserrat font-bold text-sm text-brand-black mb-1.5">Hiểu <button type="button" class="concept" data-concept="soa">SOA</button> &amp; <button type="button" class="concept" data-concept="esb">ESB</button></h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Giải thích vai trò ESB trong tích hợp heterogeneous systems và rủi ro <button type="button" class="concept" data-concept="spof">SPOF</button>.</p>
+        </div>
+        <div class="card p-5 animate-scale delay-300">
+          <div class="w-11 h-11 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-graph text-2xl"></i></div>
+          <h4 class="font-montserrat font-bold text-sm text-brand-black mb-1.5">Nắm đặc trưng <button type="button" class="concept" data-concept="msa">MSA</button></h4>
+          <p class="text-xs text-gray-600 leading-relaxed">So sánh MLA / SOA / MSA; nhận diện 6 đặc trưng và thách thức kỹ thuật.</p>
+        </div>
+        <div class="card p-5 animate-scale delay-350">
+          <div class="w-11 h-11 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-database text-2xl"></i></div>
+          <h4 class="font-montserrat font-bold text-sm text-brand-black mb-1.5">Thiết kế dữ liệu phân tán</h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Áp dụng <button type="button" class="concept" data-concept="db_per_service">Database-per-service</button>, tránh <button type="button" class="concept" data-concept="shared_db">Shared DB</button>, dùng <button type="button" class="concept" data-concept="api_composition">API Composition</button> đúng cách.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3 MONOLITH INTRO -->
+<div class="slide-page" id="slide-3" data-nav="1">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Kiến trúc <button type="button" class="concept" data-concept="mla">Monolithic (MLA)</button></h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 01 · Single Deployable Unit · Click từ đỏ để xem giải thích</span>
+    </div>
+    <div class="slide-body">
+      <div class="split">
+        <div class="col space-y-3">
+          <p class="text-sm text-gray-600 leading-relaxed animate-item delay-200">
+            Tất cả thành phần (UI, Business Logic, Data Access) gắn kết chặt và đóng gói thành <strong class="text-brand-primary">một khối duy nhất</strong> — thường là 1 file JAR/WAR trên 1 server.
+          </p>
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-250">
+            <i class="ph ph-lightning text-xl text-brand-primary shrink-0"></i>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black">Gọi <button type="button" class="concept" data-concept="in_memory">in-memory</button></h4>
+              <p class="text-xs text-gray-600 mt-0.5">Module gọi nhau qua DI, latency thấp, JOIN SQL dễ.</p>
+            </div>
+          </div>
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-300">
+            <i class="ph ph-package text-xl text-brand-primary shrink-0"></i>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black">Deploy đơn giản</h4>
+              <p class="text-xs text-gray-600 mt-0.5">Build 1 artifact — phù hợp <button type="button" class="concept" data-concept="mvp">MVP</button>, đội &lt; 5–7 dev.</p>
+            </div>
+          </div>
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-350">
+            <i class="ph ph-database text-xl text-brand-primary shrink-0"></i>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black"><button type="button" class="concept" data-concept="shared_db">Shared Database</button></h4>
+              <p class="text-xs text-gray-600 mt-0.5">Một MySQL/PostgreSQL cho mọi module · <button type="button" class="concept" data-concept="acid">ACID</button> dễ.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col animate-scale delay-250">
+          <div class="illust">
+            <img src="images/s02-monolith.jpg" alt="Monolithic architecture cube"/>
+            <span class="illust-label">1 khối · 1 DB · 1 deploy</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4 MONOLITH LIMITS -->
+<div class="slide-page" id="slide-4" data-nav="1">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Giới hạn của Monolithic</h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 01 · Khi startup lớn lên…</span>
+    </div>
+    <div class="slide-body">
+      <div class="split">
+        <div class="col animate-scale delay-200">
+          <div class="illust">
+            <img src="images/s02-monolith.jpg" alt="Monolith limits"/>
+            <span class="illust-label">Tight coupling</span>
+          </div>
+        </div>
+        <div class="col space-y-3">
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-250">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center shrink-0 font-bold text-sm">1</div>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black">Deploy cả khối</h4>
+              <p class="text-xs text-gray-600 mt-0.5">Sửa nhỏ module Giỏ hàng → build lại toàn project, restart 15 phút, downtime toàn hệ thống.</p>
+            </div>
+          </div>
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-300">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center shrink-0 font-bold text-sm">2</div>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black">Merge conflict triền miên</h4>
+              <p class="text-xs text-gray-600 mt-0.5">30 dev / 1 repo → xung đột code; lỗi 1 nhóm có thể sập cả app (<button type="button" class="concept" data-concept="tight_coupling">tight coupling</button>).</p>
+            </div>
+          </div>
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-350">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center shrink-0 font-bold text-sm">3</div>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black">Không scale độc lập</h4>
+              <p class="text-xs text-gray-600 mt-0.5">Scale module đọc → phải clone cả Payment + connection pool → nghẽn DB.</p>
+            </div>
+          </div>
+          <div class="card-soft p-3.5 flex gap-3 animate-item delay-400">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center shrink-0 font-bold text-sm">4</div>
+            <div>
+              <h4 class="font-bold text-sm text-brand-black"><button type="button" class="concept" data-concept="spof">Single Point of Failure</button></h4>
+              <p class="text-xs text-gray-600 mt-0.5">Memory leak 1 module (chung JVM) → <button type="button" class="concept" data-concept="oom">OOM</button> → sập Order &amp; Payment.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5 CASE MONOLITH -->
+<div class="slide-page" id="slide-5" data-nav="1">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Case study Monolith</h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 01 · 2 tình huống thực tế</span>
+    </div>
+    <div class="slide-body">
+      <div class="grid grid-cols-2 gap-5 w-full">
+        <div class="card p-5 animate-item delay-200 flex flex-col">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-9 h-9 rounded-lg bg-red-50 text-brand-primary flex items-center justify-center"><i class="ph ph-warning-octagon text-xl"></i></div>
+            <h4 class="font-montserrat font-bold text-sm text-brand-black">Memory Leak → <button type="button" class="concept" data-concept="oom">OOM</button></h4>
+          </div>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">Module gợi ý AI rò rỉ bộ nhớ trong cùng JVM với Order/Payment.</p>
+          <ul class="text-xs text-gray-600 space-y-2 flex-1">
+            <li class="flex gap-2"><i class="ph ph-caret-right text-brand-primary shrink-0"></i>OutOfMemoryError chiếm hết RAM server</li>
+            <li class="flex gap-2"><i class="ph ph-caret-right text-brand-primary shrink-0"></i>Không chỉ mất gợi ý — cả đặt hàng &amp; thanh toán tê liệt</li>
+            <li class="flex gap-2"><i class="ph ph-caret-right text-brand-primary shrink-0"></i>Tổn thất doanh thu trong ~2 giờ khắc phục</li>
+          </ul>
+          <div class="mt-3 pt-3 border-t border-gray-100 text-[11px] font-semibold text-brand-primary">Bài học: <button type="button" class="concept" data-concept="spof">SPOF</button> — lỗi 1 module = sập cả hệ thống</div>
+        </div>
+        <div class="card p-5 animate-item delay-300 flex flex-col">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="w-9 h-9 rounded-lg bg-red-50 text-brand-primary flex items-center justify-center"><i class="ph ph-chart-bar text-xl"></i></div>
+            <h4 class="font-montserrat font-bold text-sm text-brand-black">Scale không đồng đều</h4>
+          </div>
+          <p class="text-xs text-gray-600 leading-relaxed mb-3">Đặt vé sự kiện: 98% xem lịch (read) · 2% mua vé (write).</p>
+          <ul class="text-xs text-gray-600 space-y-2 flex-1">
+            <li class="flex gap-2"><i class="ph ph-caret-right text-brand-primary shrink-0"></i>Scale 10 instances = clone cả module Payment nặng</li>
+            <li class="flex gap-2"><i class="ph ph-caret-right text-brand-primary shrink-0"></i>MySQL connection pool nghẽn dù CPU còn dư</li>
+            <li class="flex gap-2"><i class="ph ph-caret-right text-brand-primary shrink-0"></i>Tài nguyên lãng phí, latency tăng</li>
+          </ul>
+          <div class="mt-3 pt-3 border-t border-gray-100 text-[11px] font-semibold text-brand-primary">Bài học: không scale đúng chỗ = tốn tiền &amp; vẫn chậm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 6 SOA INTRO -->
+<div class="slide-page" id="slide-6" data-nav="1">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern"><button type="button" class="concept" data-concept="soa">SOA</button> &amp; <button type="button" class="concept" data-concept="esb">Enterprise Service Bus</button></h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 02 · Tích hợp hệ thống doanh nghiệp</span>
+    </div>
+    <div class="slide-body">
+      <div class="split split-wide-img">
+        <div class="col animate-scale delay-200">
+          <div class="illust">
+            <img src="images/s02-soa-esb.jpg" alt="SOA ESB architecture"/>
+            <span class="illust-label">ESB · Smart pipes</span>
+          </div>
+        </div>
+        <div class="col space-y-3">
+          <p class="text-sm text-gray-600 leading-relaxed animate-item delay-250">
+            <button type="button" class="concept" data-concept="soa">SOA</button> kết hợp các dịch vụ độc lập, tái sử dụng được — tập trung <em>tích hợp</em> hệ thống không đồng nhất (COBOL, .NET, Java…).
+          </p>
+          <div class="card-soft p-3.5 animate-item delay-300">
+            <h4 class="font-bold text-sm text-brand-black mb-1">Vai trò <button type="button" class="concept" data-concept="esb">ESB</button></h4>
+            <p class="text-xs text-gray-600 leading-relaxed">Protocol transform · Routing · Data transform (SOAP ↔ JSON ↔ XML) · WS-AtomicTransaction</p>
+          </div>
+          <div class="card-soft p-3.5 animate-item delay-350">
+            <h4 class="font-bold text-sm text-brand-black mb-1">Đặc trưng</h4>
+            <p class="text-xs text-gray-600 leading-relaxed"><button type="button" class="concept" data-concept="loose_coupling">Loose coupling</button> qua interface · Service reusability · <button type="button" class="concept" data-concept="smart_pipes">Smart pipes, dumb endpoints</button></p>
+          </div>
+          <div class="card-soft p-3.5 bg-red-50 border-red-100 animate-item delay-400">
+            <h4 class="font-bold text-sm text-brand-black mb-1">Bài toán điển hình</h4>
+            <p class="text-xs text-gray-600 leading-relaxed">Ngân hàng: Core Mainframe + Internet Banking + CRM — tránh “mớ bòng bong” <button type="button" class="concept" data-concept="p2p">point-to-point</button>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 7 SPAGHETTI → ESB + BOTTLENECK -->
+<div class="slide-page" id="slide-7" data-nav="1">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Từ <button type="button" class="concept" data-concept="p2p">Point-to-Point</button> đến <button type="button" class="concept" data-concept="esb">ESB</button> — và rủi ro mới</h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 02 · Lợi ích &amp; giới hạn</span>
+    </div>
+    <div class="slide-body">
+      <div class="split">
+        <div class="col animate-scale delay-200">
+          <div class="illust">
+            <img src="images/s02-spaghetti.jpg" alt="Spaghetti to hub integration"/>
+            <span class="illust-label">Chaos → Hub</span>
+          </div>
+        </div>
+        <div class="col space-y-3">
+          <div class="card-soft p-4 animate-item delay-250">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-green-500"></span>
+              <h4 class="font-bold text-sm text-brand-black"><button type="button" class="concept" data-concept="esb">ESB</button> giải quyết được gì?</h4>
+            </div>
+            <p class="text-xs text-gray-600 leading-relaxed">Chuẩn hóa giao tiếp, tích hợp legacy không sửa Core, giảm kết nối P2P chằng chịt.</p>
+          </div>
+          <div class="card-soft p-4 border-red-100 animate-item delay-350">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-2 h-2 rounded-full bg-red-500"></span>
+              <h4 class="font-bold text-sm text-brand-black">ESB = <button type="button" class="concept" data-concept="spof">Single Point of Failure</button></h4>
+            </div>
+            <p class="text-xs text-gray-600 leading-relaxed">Tải cao / 1 service chậm → queue ESB đầy → <strong>toàn trục sập</strong>. Service khác rảnh vẫn không truy cập được.</p>
+          </div>
+          <div class="card p-4 bg-gradient-to-br from-red-50 to-white border-red-100 animate-item delay-450">
+            <p class="text-xs text-gray-700 leading-relaxed"><strong class="text-brand-primary">Kết luận:</strong> <button type="button" class="concept" data-concept="soa">SOA</button> tốt cho enterprise integration, chưa tối ưu cho cloud-native agile (deploy độc lập, scale từng domain).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 8 COMPARE TABLE -->
+<div class="slide-page" id="slide-8" data-nav="2">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">So sánh <button type="button" class="concept" data-concept="mla">MLA</button> · <button type="button" class="concept" data-concept="soa">SOA</button> · <button type="button" class="concept" data-concept="msa">MSA</button></h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 02–03 · Click tiêu đề cột / ô đỏ để mở giải thích</span>
+    </div>
+    <div class="slide-body col" style="justify-content:flex-start">
+      <div class="w-full animate-item delay-200 rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div class="grid grid-cols-4 bg-brand-primary text-white text-[11px] font-bold">
+          <div class="px-3 py-2.5">Tiêu chí</div>
+          <div class="px-3 py-2.5 border-l border-white/20"><button type="button" class="concept" data-concept="mla" style="color:#fff;background:linear-gradient(180deg,transparent 70%,rgba(255,255,255,.25) 70%)">Monolithic</button></div>
+          <div class="px-3 py-2.5 border-l border-white/20"><button type="button" class="concept" data-concept="soa" style="color:#fff;background:linear-gradient(180deg,transparent 70%,rgba(255,255,255,.25) 70%)">SOA</button></div>
+          <div class="px-3 py-2.5 border-l border-white/20"><button type="button" class="concept" data-concept="msa" style="color:#fff;background:linear-gradient(180deg,transparent 70%,rgba(255,255,255,.25) 70%)">Microservices</button></div>
+        </div>
+        <div class="compare-row grid grid-cols-4 text-[11px] border-b border-gray-100">
+          <div class="px-3 py-2.5 font-semibold text-gray-800">Trọng tâm</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">Gọi hàm <button type="button" class="concept" data-concept="in_memory">in-memory</button></div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">Enterprise integration</div>
+          <div class="px-3 py-2.5 text-brand-primary font-semibold border-l border-gray-100">Agility · Deploy độc lập</div>
+        </div>
+        <div class="compare-row grid grid-cols-4 text-[11px] border-b border-gray-100">
+          <div class="px-3 py-2.5 font-semibold text-gray-800">Giao thức</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">In-process DI</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">SOAP · XML · <button type="button" class="concept" data-concept="esb">ESB</button></div>
+          <div class="px-3 py-2.5 text-brand-primary font-semibold border-l border-gray-100">REST · gRPC · Kafka</div>
+        </div>
+        <div class="compare-row grid grid-cols-4 text-[11px] border-b border-gray-100">
+          <div class="px-3 py-2.5 font-semibold text-gray-800">Tư duy kết nối</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">—</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100"><button type="button" class="concept" data-concept="smart_pipes">Smart pipes · Dumb ends</button></div>
+          <div class="px-3 py-2.5 text-brand-primary font-semibold border-l border-gray-100"><button type="button" class="concept" data-concept="dumb_pipes">Dumb pipes · Smart ends</button></div>
+        </div>
+        <div class="compare-row grid grid-cols-4 text-[11px] border-b border-gray-100">
+          <div class="px-3 py-2.5 font-semibold text-gray-800">Database</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100"><button type="button" class="concept" data-concept="shared_db">Shared DB</button></div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">Shared / cụm lớn</div>
+          <div class="px-3 py-2.5 text-brand-primary font-semibold border-l border-gray-100"><button type="button" class="concept" data-concept="db_per_service">Database-per-service</button></div>
+        </div>
+        <div class="compare-row grid grid-cols-4 text-[11px]">
+          <div class="px-3 py-2.5 font-semibold text-gray-800">Scale / Deploy</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">Scale cả khối</div>
+          <div class="px-3 py-2.5 text-gray-600 border-l border-gray-100">Phụ thuộc ESB</div>
+          <div class="px-3 py-2.5 text-brand-primary font-semibold border-l border-gray-100">Scale &amp; deploy từng service</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 9 MSA INTRO -->
+<div class="slide-page" id="slide-9" data-nav="2">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Kiến trúc <button type="button" class="concept" data-concept="msa">Microservices (MSA)</button></h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 03 · <button type="button" class="concept" data-concept="dumb_pipes">Smart endpoints · Dumb pipes</button></span>
+    </div>
+    <div class="slide-body">
+      <div class="split split-wide-img">
+        <div class="col animate-scale delay-200">
+          <div class="illust">
+            <img src="images/s02-msa.jpg" alt="Microservices with gateway"/>
+            <span class="illust-label">Gateway · Services · DB riêng</span>
+          </div>
+        </div>
+        <div class="col space-y-2.5">
+          <p class="text-sm text-gray-600 leading-relaxed animate-item delay-250">
+            Ứng dụng = tập hợp <strong class="text-brand-primary">dịch vụ nhỏ độc lập</strong>, mỗi service 1 process, giao tiếp mạng (REST / message).
+          </p>
+          <div class="card-soft p-3 animate-item delay-300">
+            <h4 class="font-bold text-xs text-brand-black">Organized around business capabilities</h4>
+            <p class="text-[11px] text-gray-500 mt-0.5">Team theo Product/Order/Payment — không theo layer kỹ thuật.</p>
+          </div>
+          <div class="card-soft p-3 animate-item delay-350">
+            <h4 class="font-bold text-xs text-brand-black">You build it, you run it</h4>
+            <p class="text-[11px] text-gray-500 mt-0.5">Đội sở hữu service chịu trách nhiệm vận hành suốt đời.</p>
+          </div>
+          <div class="card-soft p-3 animate-item delay-400">
+            <h4 class="font-bold text-xs text-brand-black">Decentralized data &amp; governance</h4>
+            <p class="text-[11px] text-gray-500 mt-0.5"><button type="button" class="concept" data-concept="db_per_service">DB riêng</button> · tự chọn stack phù hợp từng domain.</p>
+          </div>
+          <div class="card-soft p-3 bg-red-50 border-red-100 animate-item delay-450">
+            <h4 class="font-bold text-xs text-brand-black">Lightweight Gateway</h4>
+            <p class="text-[11px] text-gray-600 mt-0.5"><button type="button" class="concept" data-concept="dumb_pipes">Dumb pipe</button> — chủ yếu routing; logic nằm ở endpoints.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 10 MSA CHALLENGES -->
+<div class="slide-page" id="slide-10" data-nav="2">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Thách thức kỹ thuật của MSA</h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 03 · Cái giá của sự linh hoạt</span>
+    </div>
+    <div class="slide-body col">
+      <div class="grid grid-cols-2 gap-4 w-full">
+        <div class="card p-5 animate-item delay-200">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-wifi-slash text-xl"></i></div>
+          <h4 class="font-bold text-sm text-brand-black mb-1">Network latency &amp; reliability</h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Gọi REST/gRPC chậm hơn in-memory; có thể timeout, mất gói.</p>
+        </div>
+        <div class="card p-5 animate-item delay-250">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-arrows-left-right text-xl"></i></div>
+          <h4 class="font-bold text-sm text-brand-black mb-1">Data consistency</h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Không còn <button type="button" class="concept" data-concept="acid">ACID</button> xuyên service → <button type="button" class="concept" data-concept="eventual">eventual consistency</button> · <button type="button" class="concept" data-concept="saga">Saga</button>.</p>
+        </div>
+        <div class="card p-5 animate-item delay-300">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-gear-six text-xl"></i></div>
+          <h4 class="font-bold text-sm text-brand-black mb-1">Operational complexity</h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Hàng chục service: CI/CD, Docker, K8s, monitoring bắt buộc.</p>
+        </div>
+        <div class="card p-5 animate-item delay-350">
+          <div class="w-10 h-10 rounded-xl bg-red-50 text-brand-primary flex items-center justify-center mb-3"><i class="ph ph-path text-xl"></i></div>
+          <h4 class="font-bold text-sm text-brand-black mb-1">Distributed tracing</h4>
+          <p class="text-xs text-gray-600 leading-relaxed">Request đi qua Gateway → Order → Inventory → Payment — cần Zipkin/Micrometer.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 11 DB PER SERVICE -->
+<div class="slide-page" id="slide-11" data-nav="2">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern"><button type="button" class="concept" data-concept="db_per_service">Database-per-service</button></h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 04 · Nguyên tắc &amp; anti-pattern</span>
+    </div>
+    <div class="slide-body">
+      <div class="split">
+        <div class="col animate-scale delay-200">
+          <div class="illust">
+            <img src="images/s02-db-per-service.jpg" alt="Database per service no cross access"/>
+            <span class="illust-label">No cross-DB access</span>
+          </div>
+        </div>
+        <div class="col space-y-3">
+          <div class="card-soft p-3.5 animate-item delay-250">
+            <h4 class="font-bold text-sm text-brand-black mb-1">Quy tắc vàng</h4>
+            <p class="text-xs text-gray-600 leading-relaxed">Mỗi service sở hữu DB riêng. Truy cập từ ngoài <strong>chỉ qua API</strong> — không đọc/ghi thẳng DB service khác.</p>
+          </div>
+          <div class="card-soft p-3.5 border-red-100 animate-item delay-300">
+            <h4 class="font-bold text-sm text-brand-primary mb-1">Anti-pattern: <button type="button" class="concept" data-concept="shared_db">Shared Database</button></h4>
+            <ul class="text-xs text-gray-600 space-y-1.5 mt-1">
+              <li>• Schema coupling — đổi cột → crash service khác</li>
+              <li>• Connection / table lock tranh chấp</li>
+              <li>• Rủi ro bảo mật (đọc chéo dữ liệu nhạy cảm)</li>
+            </ul>
+          </div>
+          <div class="card-soft p-3.5 animate-item delay-350">
+            <h4 class="font-bold text-sm text-brand-black mb-1">Cái giá phải trả</h4>
+            <p class="text-xs text-gray-600 leading-relaxed">Không JOIN SQL chéo · không <button type="button" class="concept" data-concept="acid">ACID</button> đa service · phải dùng <button type="button" class="concept" data-concept="api_composition">Composition</button> / <button type="button" class="concept" data-concept="saga">Saga</button> / Event.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 12 API COMPOSITION -->
+<div class="slide-page" id="slide-12" data-nav="2">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern"><button type="button" class="concept" data-concept="api_composition">API Composition</button></h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Lesson 04 · Thay thế SQL JOIN phân tán</span>
+    </div>
+    <div class="slide-body">
+      <div class="split split-wide-img">
+        <div class="col animate-scale delay-200">
+          <div class="illust">
+            <img src="images/s02-api-composition.jpg" alt="API Composition pattern"/>
+            <span class="illust-label">Composer · Parallel calls · Merge</span>
+          </div>
+        </div>
+        <div class="col space-y-3">
+          <p class="text-sm text-gray-600 leading-relaxed animate-item delay-250">
+            <button type="button" class="concept" data-concept="bff">Composer</button> (Gateway / BFF / OrderService) gọi API các service nguồn, ghép dữ liệu in-memory, trả Client.
+          </p>
+          <div class="card-soft p-3.5 animate-item delay-300">
+            <h4 class="font-bold text-sm text-brand-black mb-1">Ví dụ: Trang chi tiết đơn</h4>
+            <p class="text-xs text-gray-600 leading-relaxed">OrderService trả <code class="text-brand-primary">productId</code> → gọi ProductService lấy tên/ảnh → ghép JSON.</p>
+          </div>
+          <div class="card-soft p-3.5 border-red-100 animate-item delay-350">
+            <h4 class="font-bold text-sm text-brand-primary mb-1">Cảnh báo: <button type="button" class="concept" data-concept="n_plus_one">N+1 qua mạng</button></h4>
+            <p class="text-xs text-gray-600 leading-relaxed">20 đơn × 20 REST call tuần tự → 4–5s. Dùng <strong>Batch API</strong> (<code>List&lt;productIds&gt;</code>) → 1 call.</p>
+          </div>
+          <div class="card p-3.5 bg-red-50 border-red-100 animate-item delay-400">
+            <p class="text-xs text-gray-700 leading-relaxed"><strong>Best practice:</strong> gọi song song khi độc lập · timeout · fallback · tránh N+1. Có thể dùng <button type="button" class="concept" data-concept="feign">OpenFeign</button>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 13 HOMEWORK -->
+<div class="slide-page" id="slide-13" data-nav="3">
+  <div class="slide-shell">
+    <div class="slide-head animate-item delay-100">
+      <h2 class="text-3xl font-montserrat font-black text-brand-black mb-1 title-modern">Homework &amp; Next Steps</h2>
+      <span class="text-xs font-bold text-brand-primary uppercase tracking-wide">Chuẩn bị Session 03 · Config &amp; Eureka</span>
+    </div>
+    <div class="slide-body">
+      <div class="split">
+        <div class="col animate-item delay-200">
+          <p class="text-[10px] font-bold text-brand-primary uppercase tracking-widest mb-3">Checklist</p>
+          <ul class="space-y-3">
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-md border-2 border-brand-primary flex items-center justify-center shrink-0 mt-0.5"><i class="ph ph-check text-brand-primary text-sm"></i></div>
+              <span class="text-sm text-gray-700 font-medium">Làm homework_session_02.md (phân tích phương án · prompt · code)</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-md border-2 border-brand-primary flex items-center justify-center shrink-0 mt-0.5"><i class="ph ph-check text-brand-primary text-sm"></i></div>
+              <span class="text-sm text-gray-700 font-medium">Thực hành session_02_tutorial_homework</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-md border-2 border-brand-primary flex items-center justify-center shrink-0 mt-0.5"><i class="ph ph-check text-brand-primary text-sm"></i></div>
+              <span class="text-sm text-gray-700 font-medium">Ôn lại DB-per-service &amp; API Composition</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-6 h-6 rounded-md border-2 border-brand-primary flex items-center justify-center shrink-0 mt-0.5"><i class="ph ph-check text-brand-primary text-sm"></i></div>
+              <span class="text-sm text-gray-700 font-medium">Đọc trước Session 03: Config Server &amp; Service Discovery</span>
+            </li>
+          </ul>
+        </div>
+        <div class="col animate-item delay-300">
+          <div class="card p-5 h-full flex flex-col justify-center">
+            <p class="text-[10px] font-bold text-brand-primary uppercase tracking-widest mb-3">Key takeaways</p>
+            <div class="space-y-3 text-xs text-gray-600 leading-relaxed">
+              <p><strong class="text-brand-black">1.</strong> <button type="button" class="concept" data-concept="mla">Monolith</button> tốt cho <button type="button" class="concept" data-concept="mvp">MVP</button> — vỡ khi scale &amp; đội ngũ lớn.</p>
+              <p><strong class="text-brand-black">2.</strong> <button type="button" class="concept" data-concept="soa">SOA</button>/<button type="button" class="concept" data-concept="esb">ESB</button> tích hợp legacy tốt nhưng dễ thành <button type="button" class="concept" data-concept="spof">SPOF</button>.</p>
+              <p><strong class="text-brand-black">3.</strong> <button type="button" class="concept" data-concept="msa">MSA</button> = <button type="button" class="concept" data-concept="dumb_pipes">smart ends + dumb pipes</button> + <button type="button" class="concept" data-concept="db_per_service">DB-per-service</button>.</p>
+              <p><strong class="text-brand-black">4.</strong> Không JOIN chéo DB → <button type="button" class="concept" data-concept="api_composition">API Composition</button> (+ Batch, tránh <button type="button" class="concept" data-concept="n_plus_one">N+1</button>).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 14 Q&A -->
+<div class="slide-page" id="slide-14" data-nav="3">
+  <div class="flex w-full h-full">
+    <div class="w-5/12 bg-white flex flex-col justify-center px-12 xl:px-14">
+      <div class="animate-item delay-100">
+        <p class="text-xs font-bold text-brand-primary uppercase tracking-widest mb-3">Phần cuối</p>
+        <h2 class="font-montserrat font-black text-4xl xl:text-5xl text-brand-black leading-tight mb-4">Q&amp;A<br/><span class="text-brand-primary">&amp; Discussion</span></h2>
+        <div class="w-14 h-1 bg-brand-primary mb-6"></div>
+        <ul class="space-y-3 text-sm text-gray-600">
+          <li class="flex items-start gap-2 animate-item delay-200"><i class="ph ph-chat-circle-dots text-brand-primary text-lg mt-0.5 shrink-0"></i>Khi nào còn nên giữ <button type="button" class="concept" data-concept="mla">Monolith</button>?</li>
+          <li class="flex items-start gap-2 animate-item delay-300"><i class="ph ph-chat-circle-dots text-brand-primary text-lg mt-0.5 shrink-0"></i><button type="button" class="concept" data-concept="soa">SOA</button> vs <button type="button" class="concept" data-concept="msa">MSA</button> khác nhau chỗ nào cốt lõi?</li>
+          <li class="flex items-start gap-2 animate-item delay-400"><i class="ph ph-chat-circle-dots text-brand-primary text-lg mt-0.5 shrink-0"></i>Làm sao tránh <button type="button" class="concept" data-concept="n_plus_one">N+1</button> khi <button type="button" class="concept" data-concept="api_composition">Composition</button>?</li>
+        </ul>
+      </div>
+    </div>
+    <div class="w-7/12 bg-pattern-red flex flex-col justify-center items-center px-12 relative overflow-hidden">
+      <div class="absolute w-72 h-72 rounded-full border border-white/10 -right-16 -top-16"></div>
+      <div class="z-10 text-center text-white animate-scale delay-200 w-full max-w-sm">
+        <div class="illust mb-6" style="background:#fff;max-height:200px">
+          <img src="images/s02-msa.jpg" alt="Session 02 wrap"/>
+        </div>
+        <p class="text-2xl xl:text-3xl font-montserrat font-bold mb-1">Cảm ơn các bạn!</p>
+        <p class="text-white/80 text-base font-light">Hẹn gặp lại Session 03</p>
+        <p class="mt-4 text-yellow-300 font-montserrat font-black text-lg">Config · Eureka · Discovery</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="nav-btn nav-prev" onclick="changeSlide(-1)" title="Trước (←)"><i class="ph ph-caret-left text-lg"></i></div>
+<div class="nav-btn nav-next" onclick="changeSlide(1)" title="Tiếp (→)"><i class="ph ph-caret-right text-lg"></i></div>
+<div class="slide-counter" id="slideCounter">1 / 15</div>
+<div class="hint-bar"><strong>Hover</strong> xem nhanh · <strong>Click</strong> mở giải thích · <kbd>Esc</kbd> đóng</div>
+</div>
+
+<!-- Concept hover tip -->
+<div class="concept-tip" id="conceptTip" role="tooltip">
+  <span class="tip-title" id="tipTitle"></span>
+  <span id="tipText"></span>
+</div>
+
+<!-- Concept click panel -->
+<div class="concept-overlay" id="conceptOverlay" onclick="closeConcept()"></div>
+<div class="concept-panel" id="conceptPanel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+  <div class="concept-panel-head">
+    <div class="concept-panel-icon" id="panelIcon"><i class="ph ph-book-open-text"></i></div>
+    <div style="min-width:0;flex:1">
+      <h3 id="panelTitle">—</h3>
+      <span class="tag" id="panelTag">Khái niệm</span>
+    </div>
+    <button type="button" class="concept-close" onclick="closeConcept()" aria-label="Đóng"><i class="ph ph-x"></i></button>
+  </div>
+  <div class="concept-panel-body" id="panelBody"></div>
+  <div class="concept-panel-foot">
+    <i class="ph ph-keyboard"></i>
+    <span>Nhấn <kbd>Esc</kbd> để đóng · Click nền mờ để đóng</span>
+  </div>
+</div>
+
+<script>
+/* ========== Glossary ========== */
+const CONCEPTS = {
+  mla: {
+    title: "Monolithic Architecture (MLA)",
+    tag: "Kiến trúc · Lesson 01",
+    icon: "ph-cube",
+    tip: "Toàn bộ app đóng gói thành một khối deploy duy nhất (1 JAR/WAR).",
+    lead: "Kiến trúc truyền thống: UI, business logic và data access gắn chặt trong một Single Deployable Unit — thường là một file JAR/WAR chạy trên một server.",
+    points: [
+      "Gọi hàm in-memory giữa các module → nhanh, latency thấp.",
+      "Shared Database: JOIN SQL và ACID transaction dễ dàng.",
+      "Phù hợp MVP, đội nhỏ (< 5–7 dev), time-to-market ngắn.",
+      "Hạn chế: scale cả khối, merge conflict, SPOF khi 1 module lỗi."
+    ]
+  },
+  shared_db: {
+    title: "Shared Database",
+    tag: "Dữ liệu · Anti-pattern (MSA)",
+    icon: "ph-database",
+    tip: "Nhiều module/service dùng chung một cơ sở dữ liệu.",
+    lead: "Mô hình một DB dùng chung cho nhiều thành phần. Hợp với Monolith, nhưng là anti-pattern nguy hiểm khi áp dụng cho Microservices.",
+    points: [
+      "Schema coupling: đổi cột ở service A → service B crash.",
+      "Tranh chấp connection pool / table lock giữa các service.",
+      "Rủi ro bảo mật: đọc/ghi chéo dữ liệu nhạy cảm không qua API.",
+      "Trong MSA phải thay bằng Database-per-service."
+    ]
+  },
+  tight_coupling: {
+    title: "Tight Coupling (Ràng buộc chặt)",
+    tag: "Thiết kế",
+    icon: "ph-link",
+    tip: "Thay đổi một module dễ phá vỡ logic module khác.",
+    lead: "Các thành phần phụ thuộc mạnh vào chi tiết triển khai của nhau — thay đổi nhỏ lan truyền rộng và khó tách deploy độc lập.",
+    points: [
+      "Trong Monolith: module gọi trực tiếp class/service nội bộ.",
+      "Khó thay thế hoặc nâng cấp một phần hệ thống.",
+      "Ngược lại: Loose Coupling — giao tiếp qua interface/API rõ ràng."
+    ]
+  },
+  spof: {
+    title: "Single Point of Failure (SPOF)",
+    tag: "Độ tin cậy",
+    icon: "ph-warning-octagon",
+    tip: "Một điểm hỏng duy nhất có thể kéo sập cả hệ thống.",
+    lead: "Thành phần nếu ngừng hoạt động sẽ làm toàn bộ (hoặc phần lớn) hệ thống không dùng được — ví dụ 1 JVM Monolith, hoặc trục ESB trung tâm.",
+    points: [
+      "Monolith: memory leak 1 module → OOM → sập Order & Payment.",
+      "SOA: ESB nghẽn/sập → mọi service “rảnh” cũng không truy cập được.",
+      "MSA giảm SPOF bằng cô lập service + fault tolerance (Circuit Breaker)."
+    ]
+  },
+  mvp: {
+    title: "MVP (Minimum Viable Product)",
+    tag: "Sản phẩm",
+    icon: "ph-rocket-launch",
+    tip: "Phiên bản tối thiểu để đưa ra thị trường và học hỏi nhanh.",
+    lead: "Sản phẩm đủ tính năng cốt lõi để validate ý tưởng. Monolith thường là lựa chọn hợp lý ở giai đoạn này nhờ deploy đơn giản và tốc độ phát triển ban đầu cao.",
+    points: [
+      "Ưu tiên time-to-market hơn khả năng scale dài hạn.",
+      "Khi đội ngũ & traffic tăng, cần đánh giá lại kiến trúc."
+    ]
+  },
+  in_memory: {
+    title: "In-memory calls",
+    tag: "Giao tiếp · Monolith",
+    icon: "ph-lightning",
+    tip: "Gọi hàm trong cùng process/JVM — không đi qua mạng.",
+    lead: "Trong Monolith, module Product gọi OrderService qua dependency injection trong bộ nhớ, không HTTP — rất nhanh nhưng tạo tight coupling.",
+    points: [
+      "Latency cực thấp so với REST/gRPC.",
+      "Không cần serialize JSON hay xử lý timeout mạng.",
+      "Đổi sang MSA: phải chuyển sang gọi mạng (Feign, gRPC, message)."
+    ]
+  },
+  oom: {
+    title: "OOM (OutOfMemoryError)",
+    tag: "Sự cố · Case study",
+    icon: "ph-memory",
+    tip: "Ứng dụng hết RAM → JVM/process sập.",
+    lead: "Khi một module (ví dụ Recommendation AI) rò rỉ bộ nhớ trong cùng JVM Monolith, OOM có thể làm chết toàn bộ process — kể cả Order và Payment.",
+    points: [
+      "Minh họa rõ SPOF của kiến trúc khối đơn.",
+      "MSA cô lập process: lỗi 1 service không chiếm RAM service khác."
+    ]
+  },
+  soa: {
+    title: "SOA (Service-Oriented Architecture)",
+    tag: "Kiến trúc · Lesson 02",
+    icon: "ph-path",
+    tip: "Thiết kế bằng các dịch vụ tái sử dụng, tập trung tích hợp enterprise.",
+    lead: "Phong cách kiến trúc kết hợp các service độc lập có khả năng tái sử dụng cao, dùng chuẩn giao tiếp mở để nối các hệ thống doanh nghiệp không đồng nhất (legacy + hiện đại).",
+    points: [
+      "Trọng tâm: Enterprise Integration (CRM, Core Banking, Portal…).",
+      "Thường dùng SOAP/XML/WSDL và trục ESB.",
+      "Smart pipes, dumb endpoints — logic nặng nằm ở đường truyền (ESB).",
+      "Tốt cho legacy; chưa tối ưu cloud-native agile như MSA."
+    ]
+  },
+  esb: {
+    title: "ESB (Enterprise Service Bus)",
+    tag: "SOA · Thành phần trung tâm",
+    icon: "ph-tree-structure",
+    tip: "Trục trung chuyển tin nhắn: transform, route, protocol bridge.",
+    lead: "Bus trung tâm trong SOA: nhận request từ các hệ thống, chuyển đổi giao thức/định dạng (SOAP↔JSON↔XML), định tuyến và có thể quản lý giao dịch phân tán.",
+    points: [
+      "Giảm kết nối point-to-point chằng chịt.",
+      "Cho phép tích hợp Core COBOL với CRM .NET mà ít sửa Core.",
+      "Rủi ro: trở thành SPOF và bottleneck khi tải cao."
+    ]
+  },
+  p2p: {
+    title: "Point-to-Point Integration",
+    tag: "Tích hợp",
+    icon: "ph-git-fork",
+    tip: "Mỗi hệ thống nối trực tiếp với hệ thống khác — dễ thành “mớ bòng bong”.",
+    lead: "Mô hình tích hợp trực tiếp A↔B, B↔C, A↔C… Khi số hệ thống tăng, số kết nối tăng theo n², chi phí bảo trì và rủi ro thay đổi schema bùng nổ.",
+    points: [
+      "SOA/ESB ra đời để thay thế mô hình này bằng hub trung tâm.",
+      "MSA dùng API/message đơn giản, tránh logic “thông minh” trên đường truyền."
+    ]
+  },
+  loose_coupling: {
+    title: "Loose Coupling (Ràng buộc lỏng)",
+    tag: "Thiết kế",
+    icon: "ph-plugs-connected",
+    tip: "Tương tác qua interface/API rõ ràng, ít phụ thuộc implementation.",
+    lead: "Các service chỉ biết hợp đồng giao tiếp (API contract), không biết chi tiết nội bộ của nhau — dễ thay thế, scale và deploy độc lập.",
+    points: [
+      "SOA: interface WSDL/SOAP qua ESB.",
+      "MSA: REST/gRPC/events — còn lỏng hơn, không phụ thuộc ESB nặng."
+    ]
+  },
+  smart_pipes: {
+    title: "Smart Pipes · Dumb Endpoints",
+    tag: "SOA",
+    icon: "ph-pipe-wrench",
+    tip: "Đường truyền (ESB) chứa logic; endpoint dịch vụ tương đối “đơn giản”.",
+    lead: "Tư duy SOA: ESB làm transform, orchestration, transaction — các service endpoint ít “thông minh”. Ngược với MSA (dumb pipes, smart endpoints).",
+    points: [
+      "Ưu: chuẩn hóa tích hợp tập trung.",
+      "Nhược: ESB phức tạp, khó scale, dễ SPOF."
+    ]
+  },
+  dumb_pipes: {
+    title: "Dumb Pipes · Smart Endpoints",
+    tag: "MSA · M. Fowler",
+    icon: "ph-flow-arrow",
+    tip: "Đường truyền đơn giản; logic nằm ở hai đầu service.",
+    lead: "Nguyên tắc Microservices: dùng HTTP/message broker đơn giản chỉ để chuyển tin; toàn bộ business logic, validation, transform nằm trong từng service endpoint.",
+    points: [
+      "REST, gRPC, Kafka — không nhồi orchestration vào bus.",
+      "Mỗi service tự chủ, dễ thay thế và scale."
+    ]
+  },
+  msa: {
+    title: "Microservices Architecture (MSA)",
+    tag: "Kiến trúc · Lesson 03",
+    icon: "ph-graph",
+    tip: "Ứng dụng = tập hợp dịch vụ nhỏ độc lập, giao tiếp qua mạng.",
+    lead: "Phát triển một ứng dụng dưới dạng nhiều service nhỏ, mỗi service một process, deploy độc lập, tổ chức theo business capability, thường kèm Database-per-service.",
+    points: [
+      "Smart endpoints + dumb pipes.",
+      "Scale và deploy từng service (ví dụ Search ×15, Order ×2).",
+      "Thách thức: network, consistency, ops, distributed tracing.",
+      "Ví dụ lớn: Netflix, Amazon, Spotify."
+    ]
+  },
+  db_per_service: {
+    title: "Database-per-service",
+    tag: "Dữ liệu · Lesson 04",
+    icon: "ph-hard-drives",
+    tip: "Mỗi microservice sở hữu và quản lý database riêng.",
+    lead: "Nguyên tắc cốt lõi MSA: dữ liệu của service chỉ truy cập qua API công khai của service đó. Cấm đọc/ghi trực tiếp DB của service khác.",
+    points: [
+      "Giữ loose coupling và độc lập deploy schema.",
+      "Không còn SQL JOIN chéo → dùng API Composition / CQRS / events.",
+      "Không còn ACID đa service → eventual consistency + Saga."
+    ]
+  },
+  api_composition: {
+    title: "API Composition",
+    tag: "Truy vấn · Lesson 04",
+    icon: "ph-stack",
+    tip: "Composer gọi nhiều API rồi ghép dữ liệu in-memory thay JOIN SQL.",
+    lead: "Khi không JOIN được giữa các DB, một Composer (Gateway, BFF, hoặc service tổng hợp) gọi song song các service nguồn, merge kết quả rồi trả Client.",
+    points: [
+      "Ví dụ: Order detail = Order API + Product API.",
+      "Nên gọi parallel khi độc lập; có timeout/fallback.",
+      "Tránh N+1: dùng Batch API thay vì loop từng id."
+    ]
+  },
+  n_plus_one: {
+    title: "N+1 Query (qua mạng)",
+    tag: "Hiệu năng · Cảnh báo",
+    icon: "ph-warning",
+    tip: "1 call lấy N item + N call chi tiết → chậm vì latency mạng cộng dồn.",
+    lead: "Lấy 20 đơn rồi loop 20 lần gọi ProductService → 4–5 giây. Trên mạng, N+1 còn đắt hơn N+1 SQL trong Monolith.",
+    points: [
+      "Sửa bằng Batch API: gửi List<productIds> một lần.",
+      "Hoặc denormalize/cache dữ liệu đọc nhiều."
+    ]
+  },
+  acid: {
+    title: "ACID Transaction",
+    tag: "Dữ liệu",
+    icon: "ph-shield-check",
+    tip: "Atomicity · Consistency · Isolation · Durability trong một DB.",
+    lead: "Trong Monolith + Shared DB, @Transactional giúp commit/rollback cả cụm thao tác. Sang MSA đa DB, không còn ACID xuyên service — phải dùng Saga / eventual consistency.",
+    points: [
+      "Atomic: tất cả thành công hoặc tất cả hoàn tác.",
+      "Phân tán: bù trừ (compensating transaction) thay vì rollback 2PC nặng."
+    ]
+  },
+  eventual: {
+    title: "Eventual Consistency",
+    tag: "Dữ liệu phân tán",
+    icon: "ph-hourglass",
+    tip: "Dữ liệu các service sẽ khớp nhau sau một khoảng thời gian, không tức thì.",
+    lead: "Thay vì consistency tức thời trên Shared DB, MSA chấp nhận trạng thái tạm thời lệch và đồng bộ qua event/Saga cho đến khi hệ thống hội tụ.",
+    points: [
+      "Phù hợp e-commerce quy mô lớn.",
+      "UI/UX cần thiết kế trạng thái “đang xử lý”."
+    ]
+  },
+  saga: {
+    title: "Saga Pattern",
+    tag: "Giao dịch phân tán",
+    icon: "ph-arrows-clockwise",
+    tip: "Chuỗi bước local transaction + bù trừ khi lỗi — thay ACID đa service.",
+    lead: "Mỗi service commit DB riêng; nếu bước sau fail, các bước trước chạy compensating action (ví dụ hủy đơn, hoàn kho). Sẽ học sâu hơn ở session Saga.",
+    points: [
+      "Choreography: event-driven giữa các service.",
+      "Orchestration: một coordinator điều phối."
+    ]
+  },
+  bff: {
+    title: "BFF / Composer",
+    tag: "API layer",
+    icon: "ph-browsers",
+    tip: "Lớp Backend-for-Frontend hoặc service tổng hợp đóng vai Composer.",
+    lead: "Thành phần đứng giữa Client và các microservice, thực hiện API Composition, tối ưu payload theo từng kênh (web/mobile).",
+    points: [
+      "Có thể đặt tại API Gateway hoặc service riêng.",
+      "Giữ Client mỏng, ẩn topology nội bộ."
+    ]
+  },
+  feign: {
+    title: "OpenFeign",
+    tag: "Spring Cloud",
+    icon: "ph-plugs",
+    tip: "HTTP client khai báo (declarative) để service gọi service.",
+    lead: "Trong Spring Cloud, Feign giúp viết interface Java map sang REST call — thay RestTemplate thủ công, dùng nhiều cho giao tiếp đồng bộ giữa microservices.",
+    points: [
+      "Kết hợp LoadBalancer, Resilience4j.",
+      "Học chi tiết ở các session giao tiếp đồng bộ."
+    ]
+  }
+};
+
+function conceptHTML(id, label) {
+  return `<button type="button" class="concept" data-concept="${id}" aria-label="Giải thích: ${label}">${label}</button>`;
+}
+
+/* ========== Slide navigation ========== */
+const slides = document.querySelectorAll(".slide-page");
+const navTabs = document.querySelectorAll(".nav-tab");
+let currentGlobalSlide = 0;
+const totalSlides = slides.length;
+let conceptOpen = false;
+
+function goToSlide(i) {
+  if (conceptOpen) closeConcept();
+  if (i < 0 || i >= totalSlides) return;
+  slides.forEach(s => s.classList.remove("active"));
+  void slides[i].offsetWidth;
+  slides[i].classList.add("active");
+  currentGlobalSlide = i;
+  updateNavbar(i);
+  document.getElementById("slideCounter").textContent = `${i + 1} / ${totalSlides}`;
+  document.getElementById("progressBar").style.width = `${((i + 1) / totalSlides) * 100}%`;
+}
+function changeSlide(d) {
+  if (conceptOpen) return;
+  const n = currentGlobalSlide + d;
+  if (n >= 0 && n < totalSlides) goToSlide(n);
+}
+function updateNavbar(idx) {
+  const tabIdx = slides[idx].getAttribute("data-nav");
+  navTabs.forEach(t => {
+    t.classList.remove("text-brand-primary", "font-bold");
+    t.classList.add("text-gray-400");
+    t.querySelector(".tab-indicator")?.classList.remove("opacity-100");
+  });
+  if (tabIdx !== "none" && navTabs[parseInt(tabIdx)]) {
+    const at = navTabs[parseInt(tabIdx)];
+    at.classList.remove("text-gray-400");
+    at.classList.add("text-brand-primary", "font-bold");
+    at.querySelector(".tab-indicator")?.classList.add("opacity-100");
+  }
+}
+
+/* ========== Concept UI ========== */
+const tipEl = document.getElementById("conceptTip");
+const tipTitle = document.getElementById("tipTitle");
+const tipText = document.getElementById("tipText");
+const overlay = document.getElementById("conceptOverlay");
+const panel = document.getElementById("conceptPanel");
+const panelTitle = document.getElementById("panelTitle");
+const panelTag = document.getElementById("panelTag");
+const panelBody = document.getElementById("panelBody");
+const panelIcon = document.getElementById("panelIcon");
+let tipTimer = null;
+let activeConceptBtn = null;
+
+function positionTip(btn) {
+  const r = btn.getBoundingClientRect();
+  const tipW = 280;
+  let left = r.left + r.width / 2 - tipW / 2;
+  left = Math.max(12, Math.min(left, window.innerWidth - tipW - 12));
+  let top = r.top - 8;
+  tipEl.style.width = tipW + "px";
+  tipEl.style.left = left + "px";
+  // measure after content set
+  requestAnimationFrame(() => {
+    const h = tipEl.offsetHeight || 60;
+    let t = r.top - h - 10;
+    const arrow = tipEl;
+    if (t < 8) {
+      t = r.bottom + 10;
+      tipEl.style.setProperty("--arrow", "top");
+    }
+    tipEl.style.top = t + "px";
+  });
+}
+
+function showTip(btn) {
+  if (conceptOpen) return;
+  const id = btn.getAttribute("data-concept");
+  const c = CONCEPTS[id];
+  if (!c) return;
+  tipTitle.textContent = c.title;
+  tipText.textContent = c.tip;
+  positionTip(btn);
+  tipEl.classList.add("show");
+}
+function hideTip() {
+  tipEl.classList.remove("show");
+}
+
+function openConcept(id, btn) {
+  const c = CONCEPTS[id];
+  if (!c) return;
+  hideTip();
+  conceptOpen = true;
+  if (activeConceptBtn) activeConceptBtn.classList.remove("is-active");
+  activeConceptBtn = btn || null;
+  if (activeConceptBtn) activeConceptBtn.classList.add("is-active");
+
+  panelTitle.textContent = c.title;
+  panelTag.textContent = c.tag;
+  panelIcon.innerHTML = `<i class="ph ${c.icon}"></i>`;
+  panelBody.innerHTML = `
+    <p class="lead">${c.lead}</p>
+    <h4>Điểm chính</h4>
+    <ul>${c.points.map(p => `<li>${p}</li>`).join("")}</ul>
+  `;
+  overlay.classList.add("open");
+  panel.classList.add("open");
+}
+
+function closeConcept() {
+  conceptOpen = false;
+  overlay.classList.remove("open");
+  panel.classList.remove("open");
+  if (activeConceptBtn) {
+    activeConceptBtn.classList.remove("is-active");
+    activeConceptBtn = null;
+  }
+  document.getElementById("deck").focus();
+}
+
+/* Event delegation */
+document.addEventListener("mouseover", e => {
+  const btn = e.target.closest(".concept");
+  if (!btn || conceptOpen) return;
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => showTip(btn), 120);
+});
+document.addEventListener("mouseout", e => {
+  const btn = e.target.closest(".concept");
+  if (!btn) return;
+  clearTimeout(tipTimer);
+  hideTip();
+});
+document.addEventListener("focusin", e => {
+  const btn = e.target.closest(".concept");
+  if (btn && !conceptOpen) showTip(btn);
+});
+document.addEventListener("focusout", e => {
+  if (e.target.closest(".concept")) hideTip();
+});
+document.addEventListener("click", e => {
+  const btn = e.target.closest(".concept");
+  if (!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openConcept(btn.getAttribute("data-concept"), btn);
+});
+
+document.addEventListener("keydown", e => {
+  if (conceptOpen) {
+    if (e.key === "Escape" || e.key === "Esc") {
+      e.preventDefault();
+      closeConcept();
+    }
+    // block slide nav while panel open
+    if (["ArrowRight", "ArrowLeft", " ", "Enter", "Home", "End"].includes(e.key)) {
+      e.preventDefault();
+    }
+    return;
+  }
+  if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    changeSlide(1);
+  } else if (e.key === "ArrowLeft") {
+    e.preventDefault();
+    changeSlide(-1);
+  } else if (e.key === "Home") {
+    e.preventDefault();
+    goToSlide(0);
+  } else if (e.key === "End") {
+    e.preventDefault();
+    goToSlide(totalSlides - 1);
+  }
+});
+
+let touchStartX = 0;
+document.addEventListener("touchstart", e => {
+  touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+document.addEventListener("touchend", e => {
+  if (conceptOpen) return;
+  if (e.target.closest(".concept")) return;
+  const dx = e.changedTouches[0].screenX - touchStartX;
+  if (Math.abs(dx) > 50) changeSlide(dx < 0 ? 1 : -1);
+}, { passive: true });
+
+document.getElementById("deck").focus();
+goToSlide(0);
+</script>
+</body>
+</html>
